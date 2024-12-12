@@ -58,9 +58,6 @@
       }
     ]
   },
-  "tapping": {
-    "hold_on_other_key_press": true
-  },
   "layouts": {
     "LAYOUT": {
       "layout": [

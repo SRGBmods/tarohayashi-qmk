@@ -53,9 +53,6 @@
   "mouse_key": {
     "enabled": true
   },
-  "tapping": {
-    "hold_on_other_key_press": true
-  },
   "layouts": {
     "LAYOUT": {
       "layout": [

@@ -58,9 +58,6 @@
       "timeout": 3000
     }
   },
-  "tapping": {
-    "hold_on_other_key_press": true
-  },
   "rgblight": {
     "led_count": 66,
     "split": true,

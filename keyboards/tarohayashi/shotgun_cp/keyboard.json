@@ -57,9 +57,6 @@
   "dynamic_keymap": {
     "layer_count": 6
   },
-  "tapping": {
-    "hold_on_other_key_press": true
-  },
   "mouse_key": {
     "enabled": true
   },

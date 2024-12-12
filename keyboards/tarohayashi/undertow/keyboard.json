@@ -17,9 +17,6 @@
     "rgblight": true,
     "midi": true
   },
-  "tapping": {
-    "hold_on_other_key_press": true
-  },
   "mouse_key": {
     "enabled": true
   },
