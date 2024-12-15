@@ -26,7 +26,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
         // 側面スイッチ
         KC_LNG2, KC_SPACE,
         // 十字キーorジョイスティック                // ジョイスティックスイッチ
-        XXXXXXX, XXXXXXX, XXXXXXX,XXXXXXX,                  L_CHMOD,
+        KC_UP, KC_DOWN, KC_LEFT, KC_RIGHT, L_CHMOD,
         KC_MS_BTN2, KC_MS_BTN1,                  MO(RIGHT_BASE)
     ),
     [RIGHT_BASE] = LAYOUT(
@@ -60,10 +60,10 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
         XXXXXXX, XXXXXXX,                            XXXXXXX
     ),
     [LIGHT_SETTINGS] = LAYOUT(
-        XXXXXXX, XXXXXXX, XXXXXXX, RGB_MOD, RGB_MOD, _______,
-        XXXXXXX, RGB_SPI, RGB_VAI, RGB_SAI, RGB_HUI, RGB_TOG,
+        XXXXXXX, XXXXXXX, XXXXXXX, UG_NEXT, UG_PREV, _______,
+        XXXXXXX, UG_SPDU, UG_VALU, UG_SATU, UG_HUEU, UG_TOGG,
         OLED_MOD, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX,
-                 RGB_SPD, RGB_VAD, RGB_SAD, RGB_HUD, XXXXXXX,
+                 UG_SPDD, UG_VALD, UG_SATD, UG_HUED, XXXXXXX,
                           QK_USER_15,
         RGB_MOD, RGB_MOD,
         XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX,          XXXXXXX,
@@ -85,9 +85,9 @@ const uint16_t PROGMEM encoder_map[][NUM_ENCODERS][2] = {
         ENCODER_CCW_CW(KC_WH_U, KC_WH_D)
     },
     [LIGHT_SETTINGS] = {
-        ENCODER_CCW_CW(RGB_SPI, RGB_SPD),
-        ENCODER_CCW_CW(RGB_VAI, RGB_VAD),
-        ENCODER_CCW_CW(RGB_SAI, RGB_SAD),
-        ENCODER_CCW_CW(RGB_HUI, RGB_HUD)
+        ENCODER_CCW_CW(UG_SPDU, UG_SPDD),
+        ENCODER_CCW_CW(UG_VALU, UG_VALD),
+        ENCODER_CCW_CW(UG_SATU, UG_SATD),
+        ENCODER_CCW_CW(UG_HUEU, UG_HUED)
     }
 };

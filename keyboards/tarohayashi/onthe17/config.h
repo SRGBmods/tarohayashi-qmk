@@ -25,6 +25,10 @@
 #define INVERT_DEFAULT true           // X軸の反転
 #define INVERT_SCROLL_DEFAULT false    // スクロールの反転
 
+// 移動量が小さい時の調節
+#define SENSITIVITY_MULTIPLIER 1.1 // 一時的倍率
+#define SENSITIVITY_DIVISOR 0.5    // 最終的な感度調整
+#define SMOOTHING_FACTOR 0.7 // 前の動きの影響度
 
 // 一時的モード変更タップ判定ms
 #define TERM_TEMP 100

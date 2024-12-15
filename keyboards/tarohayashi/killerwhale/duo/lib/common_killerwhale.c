@@ -18,7 +18,9 @@ joystick_config_t joystick_axes[JOYSTICK_AXIS_COUNT] = {
 kw_config_t kw_config;         // eeprom保存用
 bool force_scrolling, force_cursoring, force_key_input, force_gaming, slow_mode;  // 一時的モード変更用
 uint8_t joystick_attached;     // ジョイスティックの有無
-float scroll_accumulated_l_h, scroll_accumulated_l_v, scroll_accumulated_r_h, scroll_accumulated_r_v;  // スクロール端数保存用
+float h_accumulator_l, v_accumulator_l, h_accumulator_r, v_accumulator_r;  //端数保存用
+float x_accumulator_l, y_accumulator_l, x_accumulator_r, y_accumulator_r;
+float prev_x_l, prev_y_l, prev_x_r, prev_y_r;
 int16_t gp27_newt, gp28_newt;              // ジョイスティックの初期値
 int16_t gp27_max, gp28_max, gp27_min, gp28_min; // ジョイスティックの最大値、最小値
 uint16_t joystick_offset_min, joystick_offset_max; // ジョイスティックの小さい値、大きい値を無視する範囲
@@ -180,12 +182,20 @@ void matrix_init_kb(void) {
 // 初期化
 void pointing_device_init_kb(void){
     kw_config.raw = eeconfig_read_kb();
-    scroll_accumulated_l_h = 0;
-    scroll_accumulated_l_v = 0;
-    scroll_accumulated_r_h = 0;
-    scroll_accumulated_r_v = 0;
-    pointing_device_set_cpi_on_side(true,  600 + kw_config.spd_l * 300);
-    pointing_device_set_cpi_on_side(false, 600 + kw_config.spd_r * 300);
+    h_accumulator_l = 0.0;
+    v_accumulator_l = 0.0;
+    h_accumulator_r = 0.0;
+    v_accumulator_r = 0.0;
+    x_accumulator_l = 0.0;
+    y_accumulator_l = 0.0;
+    x_accumulator_r = 0.0;
+    y_accumulator_r = 0.0;
+    prev_x_l = 0.0;
+    prev_y_l = 0.0;
+    prev_x_r = 0.0;
+    prev_y_r = 0.0;
+    pointing_device_set_cpi_on_side(true,  400 + kw_config.spd_l * 200);
+    pointing_device_set_cpi_on_side(false, 400 + kw_config.spd_r * 200);
     set_auto_mouse_enable(kw_config.auto_mouse);
 
     pointing_device_init_user();
@@ -193,17 +203,31 @@ void pointing_device_init_kb(void){
 
 
 /* 諸関数 */
+#define constrain_hid(amt) ((amt) < -127 ? -127 : ((amt) > 127 ? 127 : (amt)))
 // カーソル移動
-report_mouse_t pointing_device_cursoring(double x_rev, double y_rev){
+report_mouse_t pointing_device_cursoring(bool is_left, float x_rev, float y_rev){
     report_mouse_t mouse_report;
-    mouse_report.x = (int8_t)x_rev;
-    mouse_report.y = (int8_t)y_rev;
-    mouse_report.h = 0;
-    mouse_report.v = 0;
+    if(is_left){
+        x_accumulator_l += x_rev * SENSITIVITY_DIVISOR;
+        y_accumulator_l += y_rev * SENSITIVITY_DIVISOR;
+        mouse_report.x = (int8_t)constrain_hid(x_accumulator_l);
+        mouse_report.y = (int8_t)constrain_hid(y_accumulator_l);
+        x_accumulator_l -= mouse_report.x;
+        y_accumulator_l -= mouse_report.y;
+    }else{
+        x_accumulator_r += x_rev * SENSITIVITY_DIVISOR;
+        y_accumulator_r += y_rev * SENSITIVITY_DIVISOR;
+        mouse_report.x = (int8_t)constrain_hid(x_accumulator_r);
+        mouse_report.y = (int8_t)constrain_hid(y_accumulator_r);
+        x_accumulator_r -= mouse_report.x;
+        y_accumulator_r -= mouse_report.y;
+    }
 
     return mouse_report;
-}// スクロール
-report_mouse_t pointing_device_scrolling(bool is_left, double x_rev, double y_rev){
+}
+
+// スクロール
+report_mouse_t pointing_device_scrolling(bool is_left, float x_rev, float y_rev){
     report_mouse_t mouse_report;
     mouse_report.x = 0;
     mouse_report.y = 0;
@@ -223,25 +247,25 @@ report_mouse_t pointing_device_scrolling(bool is_left, double x_rev, double y_re
 
     // 端数処理
     if(is_left){
-        scroll_accumulated_l_h += (float)x_rev / SCROLL_DIVISOR;
-        scroll_accumulated_l_v += (float)y_rev / SCROLL_DIVISOR;
-        mouse_report.h = (int8_t)scroll_accumulated_l_h;
-        mouse_report.v = (int8_t)scroll_accumulated_l_v;
-        scroll_accumulated_l_h -= (int8_t)scroll_accumulated_l_h;
-        scroll_accumulated_l_v -= (int8_t)scroll_accumulated_l_v;
+        h_accumulator_l += x_rev * SENSITIVITY_DIVISOR / SCROLL_DIVISOR;
+        v_accumulator_l += y_rev * SENSITIVITY_DIVISOR / SCROLL_DIVISOR;
+        mouse_report.h = (int8_t)constrain_hid(h_accumulator_l);
+        mouse_report.v = (int8_t)constrain_hid(v_accumulator_l);
+        h_accumulator_l -= mouse_report.h ;
+        v_accumulator_l -= mouse_report.v ;
     }else{
-        scroll_accumulated_r_h += (float)x_rev / SCROLL_DIVISOR;
-        scroll_accumulated_r_v += (float)y_rev / SCROLL_DIVISOR;
-        mouse_report.h = (int8_t)scroll_accumulated_r_h;
-        mouse_report.v = (int8_t)scroll_accumulated_r_v;
-        scroll_accumulated_r_h -= (int8_t)scroll_accumulated_r_h;
-        scroll_accumulated_r_v -= (int8_t)scroll_accumulated_r_v;
+        h_accumulator_r += x_rev * SENSITIVITY_DIVISOR / SCROLL_DIVISOR;
+        v_accumulator_r += y_rev * SENSITIVITY_DIVISOR / SCROLL_DIVISOR;
+        mouse_report.h = (int8_t)constrain_hid(h_accumulator_r);
+        mouse_report.v = (int8_t)constrain_hid(v_accumulator_r);
+        h_accumulator_r -= mouse_report.h ;
+        v_accumulator_r -= mouse_report.v ;
     }
 
     return mouse_report;
 }
 // キー入力
-report_mouse_t pointing_device_key_input(bool is_left, double x_rev, double y_rev){
+report_mouse_t pointing_device_key_input(bool is_left, float x_rev, float y_rev){
     report_mouse_t mouse_report;
     mouse_report.x = 0;
     mouse_report.y = 0;
@@ -375,19 +399,19 @@ report_mouse_t pointing_device_gaming(bool is_left, int16_t gp28_val, int16_t gp
     mouse_report.v = 0;
 
     // セットアップ
-    double x_val = (double)(gp28_val - gp28_newt);
-    double y_val = (double)(gp27_val - gp27_newt);
+    float x_val = (float)(gp28_val - gp28_newt);
+    float y_val = (float)(gp27_val - gp27_newt);
     // xが正 = 右の場合
     if(gp28_val > gp28_newt){
         // 値が小さければ0
-        if(gp28_val < (double)(gp28_newt + joystick_offset_min)){
+        if(gp28_val < (float)(gp28_newt + joystick_offset_min)){
             x_val = 0.0;
         // 値が大きければ減らす
-        }else if(gp28_val > (double)(gp28_max - joystick_offset_max)){
+        }else if(gp28_val > (float)(gp28_max - joystick_offset_max)){
             x_val = x_val - joystick_offset_max;
         }
         // 正規化
-        double span = (double)(gp28_max - joystick_offset_max - joystick_offset_min - gp28_newt);
+        float span = (float)(gp28_max - joystick_offset_max - joystick_offset_min - gp28_newt);
         if(span > 0){
             x_val = x_val / span * 511.0;
         }else{
@@ -396,14 +420,14 @@ report_mouse_t pointing_device_gaming(bool is_left, int16_t gp28_val, int16_t gp
     // xが負 = 左の場合
     }else{
         // 値が小さければ0
-        if(gp28_val > (double)(gp28_newt - joystick_offset_min)){
+        if(gp28_val > (float)(gp28_newt - joystick_offset_min)){
             x_val = 0.0;
         // 値が大きければ減らす
-        }else if(gp28_val < (double)(gp28_min + joystick_offset_max)){
+        }else if(gp28_val < (float)(gp28_min + joystick_offset_max)){
             x_val = x_val + joystick_offset_max;
         }
         // 正規化
-        double span =  (double)(gp28_newt - joystick_offset_max - joystick_offset_min - gp28_min);
+        float span =  (float)(gp28_newt - joystick_offset_max - joystick_offset_min - gp28_min);
         if (span > 0){
             x_val = x_val / span * 511.0;
         }else{
@@ -413,14 +437,14 @@ report_mouse_t pointing_device_gaming(bool is_left, int16_t gp28_val, int16_t gp
     // yが正 = 上の場合
     if(gp27_val > gp27_newt){
         // 値が小さければ0
-        if(gp27_val < (double)(gp27_newt + joystick_offset_min)){
+        if(gp27_val < (float)(gp27_newt + joystick_offset_min)){
             y_val = 0.0;
         // 値が大きければ減らす
-        }else if(gp27_val > (double)(gp27_max - joystick_offset_max)){
+        }else if(gp27_val > (float)(gp27_max - joystick_offset_max)){
             y_val = y_val - joystick_offset_max;
         }
         // 正規化
-        double span = (double)(gp27_max - joystick_offset_max - joystick_offset_min - gp27_newt);
+        float span = (float)(gp27_max - joystick_offset_max - joystick_offset_min - gp27_newt);
         if(span > 0){
             y_val = y_val / span * 511.0;
         }else{
@@ -429,14 +453,14 @@ report_mouse_t pointing_device_gaming(bool is_left, int16_t gp28_val, int16_t gp
     // yが正 = 下の場合
     }else{
         // 値が小さければ0
-        if(gp27_val > (double)(gp27_newt - joystick_offset_min)){
+        if(gp27_val > (float)(gp27_newt - joystick_offset_min)){
             y_val = 0.0;
         // 値が大きければ減らす
-        }else if(gp27_val < (double)(gp27_min + joystick_offset_max)){
+        }else if(gp27_val < (float)(gp27_min + joystick_offset_max)){
             y_val = y_val + joystick_offset_max;
         }
         // 正規化
-        double span =  (double)(gp27_newt - joystick_offset_max - joystick_offset_min - gp27_min);
+        float span =  (float)(gp27_newt - joystick_offset_max - joystick_offset_min - gp27_min);
         if (span > 0){
             y_val = y_val / span * 511.0;
         }else{
@@ -444,13 +468,13 @@ report_mouse_t pointing_device_gaming(bool is_left, int16_t gp28_val, int16_t gp
         }
     }
 
-    double rad;
-    double x_rev;
-    double y_rev;
+    float rad;
+    float x_rev;
+    float y_rev;
 
     if(is_left){
         // 角度の修正
-        rad = (double)kw_config.angle_l * 12.0 * (M_PI / 180.0) * -1.0;
+        rad = (float)kw_config.angle_l * 12.0 * (M_PI / 180.0) * -1.0;
         x_rev =  + x_val * cos(rad) - y_val * sin(rad);
         y_rev =  + x_val * sin(rad) + y_val * cos(rad);
 
@@ -460,7 +484,7 @@ report_mouse_t pointing_device_gaming(bool is_left, int16_t gp28_val, int16_t gp
         }
     }else{
         // 角度の修正
-        rad = (double)kw_config.angle_r * 12.0 * (M_PI / 180.0) * -1.0;
+        rad = (float)kw_config.angle_r * 12.0 * (M_PI / 180.0) * -1.0;
         x_rev =  + x_val * cos(rad) - y_val * sin(rad);
         y_rev =  + x_val * sin(rad) + y_val * cos(rad);
 
@@ -481,18 +505,18 @@ report_mouse_t pointing_device_gaming(bool is_left, int16_t gp28_val, int16_t gp
 // 実タスク
 report_mouse_t pointing_device_task_combined_user(report_mouse_t left_report, report_mouse_t right_report) {
     // ジョイスティックの値
-    double x_val_js = 0.0;
-    double y_val_js = 0.0;
+    float x_val_js = 0.0;
+    float y_val_js = 0.0;
     int16_t gp28_val = 0;
     int16_t gp27_val = 0;
     if((bool)joystick_attached){
         // amprifier値決定
-        double amp_temp = 1.0;
+        float amp_temp = 1.0;
         if(joystick_attached == JOYSTICK_LEFT){
             if(slow_mode){
                 amp_temp = AMP_SLOW;
             }else{
-                amp_temp = 16.0 + (double)kw_config.spd_l * 3.0;
+                amp_temp = 16.0 + (float)kw_config.spd_l * 3.0;
             }
             switch (kw_config.pd_mode_l){
                 case KEY_INPUT:
@@ -509,7 +533,7 @@ report_mouse_t pointing_device_task_combined_user(report_mouse_t left_report, re
             if(slow_mode){
                 amp_temp = AMP_SLOW;
             }else{
-                amp_temp = 16.0 + (double)kw_config.spd_r * 3.0;
+                amp_temp = 16.0 + (float)kw_config.spd_r * 3.0;
             }
             switch (kw_config.pd_mode_r){
                 case KEY_INPUT:
@@ -549,39 +573,61 @@ report_mouse_t pointing_device_task_combined_user(report_mouse_t left_report, re
             temp_y_val = 0;
         }
 
-        x_val_js = ( (double)temp_x_val / JOYSTICK_DIVISOR ) * amp_temp;
-        y_val_js = ( (double)temp_y_val / JOYSTICK_DIVISOR ) * amp_temp;
+        x_val_js = ( (float)temp_x_val / JOYSTICK_DIVISOR ) * amp_temp;
+        y_val_js = ( (float)temp_y_val / JOYSTICK_DIVISOR ) * amp_temp;
     }
     // マウスの数値はそのまま使う
-    double x_val_l = 0.0;
-    double y_val_l = 0.0;
-    double x_val_r = 0.0;
-    double y_val_r = 0.0;
+    float x_val_l = 0.0;
+    float y_val_l = 0.0;
+    float x_val_r = 0.0;
+    float y_val_r = 0.0;
 
     if(joystick_attached == JOYSTICK_LEFT){
         x_val_l = x_val_js;
         y_val_l = y_val_js;
-        x_val_r = (double)right_report.x;
-        y_val_r = (double)right_report.y;
+        x_val_r = (float)right_report.x;
+        y_val_r = (float)right_report.y;
     }else if(joystick_attached == JOYSTICK_RIGHT){
-        x_val_l = (double)left_report.x;
-        y_val_l = (double)left_report.y;
+        x_val_l = (float)left_report.x;
+        y_val_l = (float)left_report.y;
         x_val_r = x_val_js;
         y_val_r = y_val_js;
     }else{
-        x_val_l = (double)left_report.x;
-        y_val_l = (double)left_report.y;
-        x_val_r = (double)right_report.x;
-        y_val_r = (double)right_report.y;
+        x_val_l = (float)left_report.x;
+        y_val_l = (float)left_report.y;
+        x_val_r = (float)right_report.x;
+        y_val_r = (float)right_report.y;
     }
 
     // 角度補正
-    double rad = (double)kw_config.angle_l * 12.0 * (M_PI / 180.0) * -1.0;
-    double x_rev_l =  + x_val_l * cos(rad) - y_val_l * sin(rad);
-    double y_rev_l =  + x_val_l * sin(rad) + y_val_l * cos(rad);
-    rad = (double)kw_config.angle_r * 12.0 * (M_PI / 180.0) * -1.0;
-    double x_rev_r =  + x_val_r * cos(rad) - y_val_r * sin(rad);
-    double y_rev_r =  + x_val_r * sin(rad) + y_val_r * cos(rad);
+    float rad = (float)kw_config.angle_l * 12.0 * (M_PI / 180.0) * -1.0;
+    float x_rev_l =  + x_val_l * cos(rad) - y_val_l * sin(rad);
+    float y_rev_l =  + x_val_l * sin(rad) + y_val_l * cos(rad);
+    rad = (float)kw_config.angle_r * 12.0 * (M_PI / 180.0) * -1.0;
+    float x_rev_r =  + x_val_r * cos(rad) - y_val_r * sin(rad);
+    float y_rev_r =  + x_val_r * sin(rad) + y_val_r * cos(rad);
+
+    // 前回移動量を参照して補正
+    float smoothed_x_l = prev_x_l * SMOOTHING_FACTOR + x_rev_l * (1.0 - SMOOTHING_FACTOR);
+    float smoothed_y_l = prev_y_l * SMOOTHING_FACTOR + y_rev_l * (1.0 - SMOOTHING_FACTOR);
+    prev_x_l = smoothed_x_l;
+    prev_y_l = smoothed_y_l;
+    float smoothed_x_r = prev_x_r * SMOOTHING_FACTOR + x_rev_r * (1.0 - SMOOTHING_FACTOR);
+    float smoothed_y_r = prev_y_r * SMOOTHING_FACTOR + y_rev_r * (1.0 - SMOOTHING_FACTOR);
+    prev_x_r = smoothed_x_r;
+    prev_y_r = smoothed_y_r;
+
+    // 動作量で移動量を変える
+    float movement_magnitude_l = sqrt(smoothed_x_l * smoothed_x_l + smoothed_y_l * smoothed_y_l);
+    float dynamic_multiplier_l = 1.0 + movement_magnitude_l / 10.0;
+    dynamic_multiplier_l = fmin(fmax(dynamic_multiplier_l, 0.5), 3.0);
+    x_rev_l *= SENSITIVITY_MULTIPLIER * dynamic_multiplier_l;
+    y_rev_l *= SENSITIVITY_MULTIPLIER * dynamic_multiplier_l;
+    float movement_magnitude_r = sqrt(smoothed_x_r * smoothed_x_r + smoothed_y_r * smoothed_y_r);
+    float dynamic_multiplier_r = 1.0 + movement_magnitude_r / 10.0;
+    dynamic_multiplier_r = fmin(fmax(dynamic_multiplier_r, 0.5), 3.0);
+    x_rev_r *= SENSITIVITY_MULTIPLIER * dynamic_multiplier_r;
+    y_rev_r *= SENSITIVITY_MULTIPLIER * dynamic_multiplier_r;
 
     // x軸反転処理
     if(kw_config.inv_l){ x_rev_l = -1.0 * x_rev_l; }
@@ -601,8 +647,8 @@ report_mouse_t pointing_device_task_combined_user(report_mouse_t left_report, re
     }
     // 一時的モード変更
     if(force_cursoring){
-        left_report = pointing_device_cursoring(x_rev_l, y_rev_l);
-        right_report = pointing_device_cursoring(x_rev_r, y_rev_r);
+        left_report = pointing_device_cursoring(true, x_rev_l, y_rev_l);
+        right_report = pointing_device_cursoring(false, x_rev_r, y_rev_r);
     }else if(force_scrolling){
         left_report = pointing_device_scrolling(true, x_rev_l, y_rev_l);
         right_report = pointing_device_scrolling(false, x_rev_r, y_rev_r);
@@ -613,7 +659,7 @@ report_mouse_t pointing_device_task_combined_user(report_mouse_t left_report, re
         // 左手処理
         if (forced != JOYSTICK_LEFT){
             if(kw_config.pd_mode_l == CURSOR_MODE){
-                left_report = pointing_device_cursoring(x_rev_l, y_rev_l);
+                left_report = pointing_device_cursoring(true, x_rev_l, y_rev_l);
             }else if(kw_config.pd_mode_l == SCROLL_MODE){
                 left_report = pointing_device_scrolling(true, x_rev_l, y_rev_l);
             }else if(kw_config.pd_mode_l == KEY_INPUT){
@@ -625,7 +671,7 @@ report_mouse_t pointing_device_task_combined_user(report_mouse_t left_report, re
         // 右手処理
         if (forced != JOYSTICK_RIGHT){
             if(kw_config.pd_mode_r == CURSOR_MODE){
-                right_report = pointing_device_cursoring(x_rev_r, y_rev_r);
+                right_report = pointing_device_cursoring(false, x_rev_r, y_rev_r);
             }else if(kw_config.pd_mode_r == SCROLL_MODE){
                 right_report = pointing_device_scrolling(false, x_rev_r, y_rev_r);
             }else if(kw_config.pd_mode_r == KEY_INPUT){
@@ -662,14 +708,18 @@ void clear_keyinput(void){
     unregister_code(keycode_down_l);
     unregister_code(keycode_left_l);
     unregister_code(keycode_right_l);
-    scroll_accumulated_l_v = 0;
-    scroll_accumulated_l_h = 0;
+    x_accumulator_l = 0.0;
+    y_accumulator_l = 0.0;
+    v_accumulator_l = 0.0;
+    h_accumulator_l = 0.0;
     unregister_code(keycode_up_r);
     unregister_code(keycode_down_r);
     unregister_code(keycode_left_r);
     unregister_code(keycode_right_r);
-    scroll_accumulated_r_v = 0;
-    scroll_accumulated_r_h = 0;
+    x_accumulator_r = 0.0;
+    y_accumulator_r = 0.0;
+    v_accumulator_r = 0.0;
+    h_accumulator_r = 0.0;
 }
 /* インターフェース */
 void reset_joystick(void){
@@ -740,8 +790,8 @@ void is_slow_mode(bool is_slow_mode){
         pointing_device_set_cpi_on_side(true,  CPI_SLOW);
         pointing_device_set_cpi_on_side(false, CPI_SLOW);
     }else{
-        pointing_device_set_cpi_on_side(true,  600 + kw_config.spd_l * 300);
-        pointing_device_set_cpi_on_side(false, 600 + kw_config.spd_r * 300);
+        pointing_device_set_cpi_on_side(true,  400 + kw_config.spd_l * 200);
+        pointing_device_set_cpi_on_side(false, 400 + kw_config.spd_r * 200);
     }
     clear_keyinput();
 }

@@ -38,43 +38,43 @@ bool oled_task_addedoled(void) {
         if(timer_elapsed(interrupted_time) < INTERRUPT_TIME){
             oled_set_cursor(0, 3);
             switch (interrupt_type){
-                case RGB_HUI:
-                    oled_write_P(PSTR("INCREASE HUE         "), false);
-                    break;
-                case RGB_HUD:
-                    oled_write_P(PSTR("DECREASE HUE         "), false);
-                    break;
-                case RGB_SAI:
-                    oled_write_P(PSTR("INCREASE SATURATION  "), false);
-                    break;
-                case RGB_SAD:
-                    oled_write_P(PSTR("DECREASE SATURATION  "), false);
-                    break;
-                case RGB_VAI:
-                    oled_write_P(PSTR("INCREASE VALUE       "), false);
-                    break;
-                case RGB_VAD:
-                    oled_write_P(PSTR("DECREASE VALUE       "), false);
-                    break;
-                case RGB_SPI:
-                    oled_write_P(PSTR("INCREASE LIGHT SPEED "), false);
-                    break;
-                case RGB_SPD:
-                    oled_write_P(PSTR("DECREASE LIGHT SPEED "), false);
-                    break;
-                case RGB_MOD:
-                    oled_write_P(PSTR("NEXT LIGHT PATTERN   "), false);
-                    break;
-                case RGB_RMOD:
-                    oled_write_P(PSTR("PREV LIGHT PATTERN   "), false);
-                    break;
-                case RGB_TOG:
-                    if(rgblight_is_enabled()){
-                        oled_write_P(PSTR("RGB ON               "), false);
-                    }else{
-                        oled_write_P(PSTR("RGB OFF              "), false);
-                    }
-                    break;
+            case UG_HUEU:
+                oled_write_P(PSTR("INCREASE HUE         "), false);
+                break;
+            case UG_HUED:
+                oled_write_P(PSTR("DECREASE HUE         "), false);
+                break;
+            case UG_SATU:
+                oled_write_P(PSTR("INCREASE SATURATION  "), false);
+                break;
+            case UG_SATD:
+                oled_write_P(PSTR("DECREASE SATURATION  "), false);
+                break;
+            case UG_VALU:
+                oled_write_P(PSTR("INCREASE VALUE       "), false);
+                break;
+            case UG_VALD:
+                oled_write_P(PSTR("DECREASE VALUE       "), false);
+                break;
+            case UG_SPDU:
+                oled_write_P(PSTR("INCREASE LIGHT SPEED "), false);
+                break;
+            case UG_SPDD:
+                oled_write_P(PSTR("DECREASE LIGHT SPEED "), false);
+                break;
+            case UG_NEXT:
+                oled_write_P(PSTR("NEXT LIGHT PATTERN   "), false);
+                break;
+            case UG_PREV:
+                oled_write_P(PSTR("PREV LIGHT PATTERN   "), false);
+                break;
+            case UG_TOGG:
+                if(rgblight_is_enabled()){
+                    oled_write_P(PSTR("RGB ON               "), false);
+                }else{
+                    oled_write_P(PSTR("RGB OFF              "), false);
+                }
+                break;
                 // ショートカット系
                 case UNDO:
                     oled_write_P(PSTR("UNDO                 "), false);
@@ -270,14 +270,14 @@ bool oled_task_addedoled(void) {
             oled_write_P(get_u16_str(16 + (uint16_t)kw_config.spd_l * 3, ' '), false);
         }else{
             oled_write_P(PSTR(" L:"), false);
-            oled_write(get_u16_str(600 + (uint16_t)kw_config.spd_l * 300, ' '), false);
+            oled_write(get_u16_str(400 + (uint16_t)kw_config.spd_l * 200, ' '), false);
         }
         if(get_joystick_attached() == JOYSTICK_RIGHT){
             oled_write_P(PSTR(" J:"), false);
             oled_write(get_u16_str(16 + (uint16_t)kw_config.spd_r * 3, ' '), false);
         }else{
             oled_write_P(PSTR(" R:"), false);
-            oled_write_P(get_u16_str(600 + (uint16_t)kw_config.spd_r * 300, ' '), false);
+            oled_write_P(get_u16_str(400 + (uint16_t)kw_config.spd_r * 200, ' '), false);
         }
 
         oled_set_cursor(0, 1);

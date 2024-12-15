@@ -265,7 +265,7 @@ bool process_record_addedkeycodes(uint16_t keycode, keyrecord_t *record) {
                     kw_config.spd_l = SPD_OPTION_MAX-1;
                 }
                 eeconfig_update_kb(kw_config.raw);
-                pointing_device_set_cpi_on_side(true,  600 + kw_config.spd_l * 300);
+                pointing_device_set_cpi_on_side(true,  400 + kw_config.spd_l * 200);
                 oled_interrupt(keycode);
             }
             return false;
@@ -277,7 +277,7 @@ bool process_record_addedkeycodes(uint16_t keycode, keyrecord_t *record) {
                     kw_config.spd_r = SPD_OPTION_MAX-1;
                 }
                 eeconfig_update_kb(kw_config.raw);
-                pointing_device_set_cpi_on_side(false, 600 + kw_config.spd_r * 300);
+                pointing_device_set_cpi_on_side(false, 400 + kw_config.spd_r * 200);
                 oled_interrupt(keycode);
             }
             return false;
@@ -288,7 +288,7 @@ bool process_record_addedkeycodes(uint16_t keycode, keyrecord_t *record) {
                     kw_config.spd_l = kw_config.spd_l - 1;
                 }
                 eeconfig_update_kb(kw_config.raw);
-                pointing_device_set_cpi_on_side(true,  600 + kw_config.spd_l * 300);
+                pointing_device_set_cpi_on_side(true,  400 + kw_config.spd_l * 200);
                 oled_interrupt(keycode);
             }
             return false;
@@ -299,7 +299,7 @@ bool process_record_addedkeycodes(uint16_t keycode, keyrecord_t *record) {
                     kw_config.spd_r = kw_config.spd_r - 1;
                 }
                 eeconfig_update_kb(kw_config.raw);
-                pointing_device_set_cpi_on_side(false, 600 + kw_config.spd_r * 300);
+                pointing_device_set_cpi_on_side(false, 400 + kw_config.spd_r * 200);
                 oled_interrupt(keycode);
             }
             return false;
