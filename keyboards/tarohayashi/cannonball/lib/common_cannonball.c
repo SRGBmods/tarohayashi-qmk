@@ -4,7 +4,6 @@
 #include "lib/common_cannonball.h"
 #include "lib/add_keycodes.h"
 
-/* ポインティングデバイス用変数 */
 cb_config_t cb_config;      // eeprom保存用
 
 /* eeprom */
